@@ -34,7 +34,7 @@ else
 fi
 
 # Set Oh My Zsh theme to geoffgarside
-sed -i '' 's/^ZSH_THEME=.*/ZSH_THEME="geoffgarside"/' "$HOME/.zshrc"
+sed -i 's/^ZSH_THEME=.*/ZSH_THEME="geoffgarside"/' "$HOME/.zshrc"
 
 # Install zsh-autosuggestions plugin
 ZSH_CUSTOM="$HOME/.oh-my-zsh/custom"
@@ -49,19 +49,15 @@ if [ ! -d "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting" ]; then
     git clone --quiet https://github.com/zsh-users/zsh-syntax-highlighting.git "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting"
 fi
 
-# Install zsh-git-prompt plugin
-if [ ! -d "$ZSH_CUSTOM/plugins/zsh-git-prompt" ]; then
-    echo "Installing zsh-git-prompt plugin..."
-    git clone --quiet https://github.com/olivierverdier/zsh-git-prompt "$ZSH_CUSTOM/plugins/zsh-git-prompt"
-fi
-
 # Enable plugins in .zshrc
-sed -i '' 's/^plugins=(.*/plugins=(git zsh-autosuggestions zsh-syntax-highlighting zsh-git-prompt)/' "$HOME/.zshrc"
+sed -i 's/^plugins=(.*/plugins=(git zsh-autosuggestions zsh-syntax-highlighting)/' "$HOME/.zshrc"
 
 # Change the default shell to Zsh
+sudo sed -i 's/^auth       required   pam_shells.so.*/# auth       required   pam_shells.so/' /etc/pam.d/chsh
+
 if [ "$SHELL" != "$(which zsh)" ]; then
     echo "Changing default shell to Zsh..."
-    chsh -s "$(which zsh)" "$USER"
+    sudo chsh -s "$(which zsh)" "$USER"
 fi
 
 echo "Oh My Zsh installation completed! Restart your terminal or log out and back in for changes to take effect."
