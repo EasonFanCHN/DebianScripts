@@ -8,8 +8,13 @@ if [ "$(id -u)" -eq 0 ]; then
     exit 1
 fi
 
-# Ensure Vim is installed
-sudo apt update -qq && sudo apt install -y vim
+# Check if Vim is installed, install if missing
+if ! command -v vim &>/dev/null; then
+    echo "Installing Vim..."
+    sudo apt update -qq && sudo apt install -y vim
+else
+    echo "Vim is already installed, skipping installation."
+fi
 
 # Fix arrow key issue in Vim
 VIMRC="$HOME/.vimrc"
