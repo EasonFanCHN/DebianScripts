@@ -16,8 +16,14 @@ else
     echo "Vim is already installed, skipping installation."
 fi
 
-# Fix arrow key issue in Vim
+# Ensure .vimrc exists
 VIMRC="$HOME/.vimrc"
+if [ ! -f "$VIMRC" ]; then
+    touch "$VIMRC"
+    echo "Created $VIMRC"
+fi
+
+# Fix arrow key issue in Vim
 if ! grep -q "set nocompatible" "$VIMRC"; then
     echo "set nocompatible" >>"$VIMRC"
 fi
