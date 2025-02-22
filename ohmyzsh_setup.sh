@@ -50,8 +50,8 @@ if [ ! -d "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting" ]; then
 fi
 
 # Export Path
-sed -i 's/^# export PATH=.*/export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH/' "$HOME/.zshrc"
-echo "export PATH=$PATH:/usr/sbin" | tee -a "$HOME/.zshrc"
+sed -i 's/^# export PATH=.*/export PATH=\$HOME\/bin:\$HOME\/.local\/bin:\/usr\/local\/bin:\$PATH/' "$HOME/.zshrc"
+echo "export PATH=\$PATH:/usr/sbin" | tee -a "$HOME/.zshrc"
 
 # Enable plugins in .zshrc
 sed -i 's/^plugins=(.*/plugins=(git zsh-autosuggestions zsh-syntax-highlighting)/' "$HOME/.zshrc"
