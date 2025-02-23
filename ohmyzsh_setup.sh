@@ -52,6 +52,7 @@ fi
 # Export Path
 sed -i 's/^# export PATH=.*/export PATH=\$HOME\/bin:\$HOME\/.local\/bin:\/usr\/local\/bin:\$PATH/' "$HOME/.zshrc"
 echo "export PATH=\$PATH:/usr/sbin" | tee -a "$HOME/.zshrc"
+echo "PROMPT='[%*] %{\$fg[cyan]%}%n%{\$reset_color%}@%F{green}%m:%{\$fg[green]%}%c%{\$reset_color%}\$(git_prompt_info) %(\!.#.\$)'" | tee -a "$HOME/.zshrc"
 
 # Enable plugins in .zshrc
 sed -i 's/^plugins=(.*/plugins=(git zsh-autosuggestions zsh-syntax-highlighting)/' "$HOME/.zshrc"
