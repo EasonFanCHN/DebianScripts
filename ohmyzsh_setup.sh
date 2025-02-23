@@ -33,9 +33,6 @@ else
     echo "Oh My Zsh is already installed."
 fi
 
-# Set Oh My Zsh theme to geoffgarside
-sed -i 's/^ZSH_THEME=.*/ZSH_THEME="geoffgarside"/' "$HOME/.zshrc"
-
 # Install zsh-autosuggestions plugin
 ZSH_CUSTOM="$HOME/.oh-my-zsh/custom"
 if [ ! -d "$ZSH_CUSTOM/plugins/zsh-autosuggestions" ]; then
@@ -52,13 +49,19 @@ fi
 # Export Path
 sed -i 's/^# export PATH=.*/export PATH=\$HOME\/bin:\$HOME\/.local\/bin:\/usr\/local\/bin:\$PATH/' "$HOME/.zshrc"
 echo "export PATH=\$PATH:/usr/sbin" | tee -a "$HOME/.zshrc"
-echo "PROMPT='[%*] %{\$fg[cyan]%}%n%{\$reset_color%}@%F{green}%m:%{\$fg[green]%}%c%{\$reset_color%}\$(git_prompt_info) %(\!.#.\$) '" | tee -a "$HOME/.zshrc"
+
+# Custmize prompt
+cp $HOME/.oh-my-zsh/themes/geoffgarside.zsh-theme $HOME/.oh-my-zsh/custom/themes/custmized.zsh-theme
+sed -i "s|^PROMPT=.*|PROMPT='[%*] %{\$fg[cyan]%}%n@%m%{\$reset_color%}:%{\$fg[green]%}%c%{\$reset_color%}\$(git_prompt_info) %(\!.#.\$) '|g" "$HOME/.oh-my-zsh/custom/themes/custmized.zsh-theme"
+
+# Set Oh My Zsh theme to geoffgarside
+sed -i 's/^ZSH_THEME=.*/ZSH_THEME="custmized"/' "$HOME/.zshrc"
 
 # Enable plugins in .zshrc
 sed -i 's/^plugins=(.*/plugins=(git zsh-autosuggestions zsh-syntax-highlighting)/' "$HOME/.zshrc"
 
 # Change the default shell to Zsh
-sudo sed -i 's/^auth       required   pam_shells.so.*/# auth       required   pam_shells.so/' /etc/pam.d/chsh
+# sudo sed -i 's/^auth       required   pam_shells.so.*/# auth       required   pam_shells.so/' /etc/pam.d/chsh
 
 if [ "$SHELL" != "$(which zsh)" ]; then
     echo "Changing default shell to Zsh..."
