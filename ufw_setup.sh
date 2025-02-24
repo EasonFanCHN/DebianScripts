@@ -17,9 +17,7 @@ ufw --force enable
 # Allow essential services
 ufw default deny incoming
 ufw default allow outgoing
-ufw allow ssh
-ufw allow http  # HTTP
-ufw allow https # HTTPS
+ufw allow proto tcp from 192.168.0.0/16 to any port 22
 
 # Reload UFW to apply changes
 ufw reload
