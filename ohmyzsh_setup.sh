@@ -12,7 +12,13 @@ fi
 OS="$(uname)"
 if [ "$OS" == "Linux" ]; then
     echo "Detected Linux system. Installing dependencies..."
-    sudo apt update -qq && sudo apt install -y zsh curl git
+    if [[ -f /etc/debian_version ]]; then
+        ob = "debian"
+        sudo apt update -qq && sudo apt install -y zsh curl git
+    elif [[ -f /etc/redhat-release ]]; then
+        ob = "redhat"
+        sudo dnf install -y zsh curl git
+    fi
 elif [ "$OS" == "Darwin" ]; then
     echo "Detected macOS. Installing dependencies..."
     if ! command -v brew &>/dev/null; then
@@ -65,7 +71,17 @@ sed -i 's/^plugins=(.*/plugins=(git zsh-autosuggestions zsh-syntax-highlighting)
 
 if [ "$SHELL" != "$(which zsh)" ]; then
     echo "Changing default shell to Zsh..."
-    sudo chsh -s "$(which zsh)" "$USER"
+    case "$ob" in
+    "debian")
+        sudo chsh -s "$(which zsh)" "$USER"
+        break
+        ;;
+    "redhat")
+        sudo sed -i 's|/bin/bash|/bin/zsh|' /etc/passwd
+        break
+        ;;
+    esac
+
 fi
 
 echo "Oh My Zsh installation completed! Restart your terminal or log out and back in for changes to take effect."

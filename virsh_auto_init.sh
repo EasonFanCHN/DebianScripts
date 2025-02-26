@@ -3,33 +3,18 @@ set -e          # Exit on error
 set -o pipefail # Ensure failures in piped commands stop the script
 
 # Default values
-name=""
-os=""
-variant=""
-ramsize=""
-vcpus=""
-diskpath=""
-disksize=""
-network=""
-isopath=""
-os_default_value="debian"
-variant_default_value="debian11"
 ramsize_default_value="2048"
 vcpus_default_value="2"
 disksize_default_value="20"
 diskpath_default_value="/mnt/nvme/kvm/images"
 isopath_default_value="/mnt/nvme/OSInstallImages"
 network_default_value="bridge=br0"
-os_valid_options=("debian" "centos" "ubuntu")
-preseed="preseed.cfg"
-extraargs="auto=true priority=critical preseed/file=/preseed.cfg"
-iso_file=""
-iso_url=""
+os_valid_options=("debian" "rocky")
 
 # URLs for fetching latest ISO links
 declare -A iso_urls=(
     ["debian"]="https://cdimage.debian.org/debian-cd/current/amd64/iso-dvd/"
-    ["centos"]="https://mirror.centos.org/centos/7/isos/x86_64/"
+    ["rocky"]="https://download.rockylinux.org/pub/rocky/"
     ["ubuntu"]="https://releases.ubuntu.com/"
 )
 
@@ -40,8 +25,6 @@ show_help() {
     echo "Options:"
     echo "  --name=<value>      Provide a custom value for VM name (required)."
     echo "  --variant=<value>   Provide a custom value for OS variant."
-    echo "  --os=<distro>       Specify a Linux distribution to download (debian, centos, ubuntu)."
-    echo "                      If not provided, the script will prompt for input."
     echo "                      Default value is '$os_default_value'"
     echo "  --ramsize=<value>   Provide a custom value for ram size."
     echo "                      If not provided, the script will prompt for input."
@@ -102,7 +85,7 @@ check_and_install() {
         if [[ -f /etc/debian_version ]]; then
             sudo apt update && sudo apt install -y "$pkg"
         elif [[ -f /etc/redhat-release ]]; then
-            sudo yum install -y "$pkg"
+            sudo dnf install -y "$pkg"
         elif [[ -f /etc/arch-release ]]; then
             sudo pacman -Sy --noconfirm "$pkg"
         else
@@ -116,17 +99,6 @@ check_and_install() {
     fi
 }
 
-# Function to validate user input for Linux distribution
-validate_os() {
-    local input=$1
-    for option in "${os_valid_options[@]}"; do
-        if [[ "$input" == "$option" ]]; then
-            return 0 # Valid input
-        fi
-    done
-    return 1 # Invalid input
-}
-
 # Function to get the latest ISO URL based on the selected distribution
 get_latest_iso_url() {
     local distro=$1
@@ -137,17 +109,25 @@ get_latest_iso_url() {
         echo "Fetching latest Debian ISO..."
         # iso_file=$(curl -s "${base_url}" | grep -oP 'debian-[0-9]+(\.[0-9]+)*-amd64-netinst.iso' | head -1)
         iso_file=$(curl -s "${base_url}" | grep -oP 'debian-[0-9]+(\.[0-9]+)*-amd64-DVD-1.iso' | head -1)
+        variant="debian$(echo "${iso_file}" | grep -oE '[0-9]+' | head -n 1)"
+        cfg="debian.cfg"
+        extraargs="auto=true priority=critical preseed/file=/${cfg}"
         ;;
-    "centos")
-        echo "Fetching latest CentOS ISO..."
-        iso_file=$(curl -s "$base_url" | grep -oP 'CentOS-7-x86_64-Minimal-[0-9]+(\.[0-9]+)*.iso' | head -1)
+    "rocky")
+        echo "Fetching latest Rocky ISO..."
+        latest_version=$(curl -s "${base_url}" | grep -oE 'href="[0-9]+/' | cut -d '"' -f 2 | sort -V | tail -1 | tr -d '/')
+        iso_file=$(curl -s "${base_url}${latest_version}/isos/x86_64/" | grep -oP 'Rocky-[0-9]+(\.[0-9]+)*-x86_64-dvd.iso' | head -1)
+        base_url="${base_url}${latest_version}/isos/x86_64/"
+        variant="rocky${latest_version}"
+        cfg="rocky.cfg"
+        extraargs="inst.ks=file:/${cfg}"
         ;;
-    "ubuntu")
-        echo "Fetching latest Ubuntu ISO..."
-        latest_version=$(curl -s "$base_url" | grep -oP '[0-9]{2}\.[0-9]{2}(\.[0-9]+)?/' | sort -V | tail -1 | tr -d '/')
-        iso_file=$(curl -s "${base_url}${latest_version}/" | grep -oP 'ubuntu-[0-9]+(\.[0-9]+)*-live-server-amd64.iso' | head -1)
-        base_url="${base_url}${latest_version}/"
-        ;;
+    # "ubuntu")
+    #     echo "Fetching latest Ubuntu ISO..."
+    #     latest_version=$(curl -s "$base_url" | grep -oP '[0-9]{2}\.[0-9]{2}(\.[0-9]+)?/' | sort -V | tail -1 | tr -d '/')
+    #     iso_file=$(curl -s "${base_url}${latest_version}/" | grep -oP 'ubuntu-[0-9]+(\.[0-9]+)*-live-server-amd64.iso' | head -1)
+    #     base_url="${base_url}${latest_version}/"
+    #     ;;
     *)
         echo "Unsupported distribution."
         exit 1
@@ -217,7 +197,6 @@ check_file_in_current_path() {
 while [[ "$#" -gt 0 ]]; do
     case "$1" in
     --name=*) name="${1#*=}" ;;
-    --os=*) os="${1#*=}" ;;
     --ramsize=*) ramsize="${1#*=}" ;;
     --vcpus=*) vcpus="${1#*=}" ;;
     --disksize=*) disksize="${1#*=}" ;;
@@ -233,22 +212,33 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
+# Interactive prompt for os if not provided or invalid
+while true; do
+    echo "Choose Your Linux Distribution："
+    echo "1) debian"
+    echo "2) rocky"
+    echo "3) exit"
+    read -p "Enter a number: " num
+
+    case "$num" in
+    1)
+        os="debian"
+        break
+        ;;
+    2)
+        os="rocky"
+        break
+        ;;
+    3)
+        exit 0
+        ;;
+    *) echo "Enter a valid number from 1 ~ 3" ;;
+    esac
+done
+
 # Interactive prompt for name if not provided or invalid
 while [[ -z "$name" ]]; do
     read -p "Enter value for VM name: " name
-done
-
-# Interactive prompt for OS Variant if not provided or invalid
-while [[ -z "$variant" ]]; do
-    read -p "Enter value for OS variant (Press Enter to use default: $variant_default_value): " variant
-    variant="${variant:-$variant_default_value}"
-done
-
-# Interactive prompt for os if not provided or invalid
-while [[ -z "$os" ]] || ! validate_os "$os"; do
-    echo "Please enter a Linux distribution to download: debian, centos, ubuntu."
-    read -p "Enter value for os (Press Enter to use default: $os_default_value): " os
-    os="${os:-$os_default_value}"
 done
 
 # Interactive prompt for vcpus if not provided
@@ -312,25 +302,6 @@ while [[ -z "$network" ]]; do
     network="${network:-$network_default_value}"
 done
 
-# Print the parameters
-echo "VM Name: $name"
-echo "OS Variant: $variant"
-echo "Linux Distro: $os"
-echo "Vcpus: $vcpus"
-echo "Ram Size: $ramsize"
-echo "Network: $network"
-echo "Disk Size: $disksize"
-echo "Disk Path: $diskpath"
-echo "ISO Path: $isopath"
-
-# Run checks
-check_kvm_installed
-check_kvm_service
-if ! check_file_in_current_path "$preseed"; then
-    echo "Please put $preseed file into current location"
-    exit 1
-fi
-
 # Check for required dependencies
 check_and_install "curl" "curl"
 
@@ -345,6 +316,25 @@ else
     download_iso "$os"
 fi
 
+# Print the parameters
+echo "VM Name: $name"
+echo "OS Variant: $variant"
+echo "Linux Distro: $os"
+echo "Vcpus: $vcpus"
+echo "Ram Size: $ramsize"
+echo "Network: $network"
+echo "Disk Size: $disksize"
+echo "Disk Path: $diskpath"
+echo "ISO Path: $isopath"
+
+# Run checks
+check_kvm_installed
+check_kvm_service
+if ! check_file_in_current_path "$cfg"; then
+    echo "Please put $cfg file into current location"
+    exit 1
+fi
+
 # Run the KVM installation
 sudo virt-install \
     --name "$name" \
@@ -356,7 +346,7 @@ sudo virt-install \
     --graphics none \
     --console pty,target_type=serial \
     --location "$isopath/$iso_file" \
-    --initrd-inject="preseed.cfg" \
-    --extra-args="$extraargs console=ttyS0,115200n8 serial"
+    --initrd-inject="$cfg" \
+    --extra-args="$extraargs console=ttyS0,115200n8"
 
 echo "$name"" VM installation completed"
