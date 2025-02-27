@@ -13,10 +13,10 @@ OS="$(uname)"
 if [ "$OS" == "Linux" ]; then
     echo "Detected Linux system. Installing dependencies..."
     if [[ -f /etc/debian_version ]]; then
-        ob = "debian"
+        ob="debian"
         sudo apt update -qq && sudo apt install -y zsh curl git
     elif [[ -f /etc/redhat-release ]]; then
-        ob = "redhat"
+        ob="redhat"
         sudo dnf install -y zsh curl git
     fi
 elif [ "$OS" == "Darwin" ]; then
